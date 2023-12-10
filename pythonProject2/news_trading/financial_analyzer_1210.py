@@ -1,7 +1,5 @@
-import json
 import re
 from datetime import datetime
-
 import requests
 from bs4 import BeautifulSoup
 from openai import OpenAI
@@ -19,7 +17,6 @@ def generate_seeking_alpha_url(ticker, start_date, end_date):
 
 def extract_news_url(ticker, start_date, end_date):
     url = generate_seeking_alpha_url(ticker, start_date, end_date)
-    # url = "https://seekingalpha.com/symbol/ZIM/news?from=2023-11-26T00:00:00.000Z&to=2023-11-30T00:00:00.999Z"
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "html.parser")
 
@@ -40,7 +37,7 @@ def extract_news_url(ticker, start_date, end_date):
 
     # Create a list of URLs with titles
     return [(f'https://seekingalpha.com/news/{x[0]}', x[1]) for x in filtered_matches]
-# ===================================
+
 
 def get_text_from_url(url):
     # Send a request to the URL
@@ -77,6 +74,7 @@ def analyze_financial_news(ticker, start_date, end_date):
     )
 
     return news, response2.choices[0].message.content
+
 
 if __name__ == "__main__":
     ticker = "ZIM"  # Replace with your ticker

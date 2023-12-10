@@ -1,20 +1,9 @@
-from flask import Flask, request, render_template_string
 from datetime import datetime
-
+from flask import Flask, request, render_template_string
 from news_trading.financial_analyzer_1210 import analyze_financial_news
 
 app = Flask(__name__)
 
-# Dummy function for demonstration
-# def analyze_financial_news(ticker, start_date, end_date):
-#     # Replace with your actual analysis logic
-#     # Example news data
-#     news_data = [
-#         ('https://seekingalpha.com/news/4041014', "U.S. warns ships of 'evolving threats' in critical trade route"),
-#         ('https://seekingalpha.com/news/4040526', 'ZIM warns of longer transit times as travel threats force it to re-route vessels')
-#     ]
-#     analysis_text = "The overall effect of the news on ZIM's stock price is likely to be negative. The U.S. warning about the growing threat of attacks in the Red Sea region and the recent hijackings of ships with Israeli links create additional risks and challenges for ZIM. The temporary re-routing of vessels by ZIM and other shipping companies, including Maersk, indicates the seriousness of the situation.\n\nThe key points from the news are the warnings of attacks in the Red Sea region and the hijacking of a cargo ship owned by Israeli billionaire Rami Ungar's Ray Car Carriers. These incidents increase the risks for ZIM and other shipping companies operating in the area. The re-routing of vessels may result in longer transit times and potential disruptions to ZIM's operations.\n\nThe future prospects for ZIM and its stock price are impacted by the potential risks associated with navigating the Red Sea region."
-#     return news_data, analysis_text
 
 @app.route('/', methods=['GET', 'POST'])
 def form():
