@@ -1,6 +1,6 @@
 from datetime import datetime
 from flask import Flask, request, render_template_string
-from news_trading.financial_analyzer_1210 import analyze_financial_news
+from financial_analyzer import analyze_financial_news
 
 app = Flask(__name__)
 
