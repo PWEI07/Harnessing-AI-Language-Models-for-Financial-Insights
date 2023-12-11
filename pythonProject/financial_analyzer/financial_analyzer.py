@@ -1,14 +1,16 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
 from openai import OpenAI
+import yfinance as yf
 
 
 def generate_seeking_alpha_url(ticker, start_date, end_date):
-    # Format dates in the required format
     start_date_formatted = start_date.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-    end_date_formatted = end_date.strftime("%Y-%m-%dT%H:%M:%S.999Z")
+    # Adjust end_date to the end of the next day and format
+    end_date_adjusted = end_date + timedelta(days=1)
+    end_date_formatted = end_date_adjusted.strftime("%Y-%m-%dT23:59:59.999Z")
 
     # Construct the URL
     url = f"https://seekingalpha.com/symbol/{ticker}/news?from={start_date_formatted}&to={end_date_formatted}"
@@ -36,44 +38,89 @@ def extract_news_url(ticker, start_date, end_date):
             filtered_matches.append((news_id, title))
 
     # Create a list of URLs with titles
-    return [(f'https://seekingalpha.com/news/{x[0]}', x[1]) for x in filtered_matches]
+    return [(f"https://seekingalpha.com/news/{x[0]}", x[1]) for x in filtered_matches]
 
 
 def get_text_from_url(url):
     # Send a request to the URL
     response = requests.get(url)
     # Parse the content of the request with BeautifulSoup
-    soup = BeautifulSoup(response.content, 'html.parser')
+    soup = BeautifulSoup(response.content, "html.parser")
 
     # Extract text from the BeautifulSoup object
-    text = ' '.join(map(lambda p: p.text, soup.find_all('p')))
+    text = " ".join(map(lambda p: p.text, soup.find_all("p")))
     return text
 
 
-steps = """ 1) Analyze the overall effect of all the news on company stock price (positive, negative, neutral). 2) Summarize key points and assess how each news impact the company's future prospects and stock price. keep in mind the max length of your response is 200 words in total, so prioritize the news that are most important and relavent to the company's prospects. 
-"""
+steps = """1) Analyze the overall effect of all the news on company stock price (positive, negative, neutral). 2) 
+Summarize key points and assess how each news impact the company's future prospects and stock price. keep in mind the 
+max length of your response is 200 words in total, so prioritize the news that are most important and relavent to the 
+company's prospects."""
 client = OpenAI()
 
 
 # Example usage
 def analyze_financial_news(ticker, start_date, end_date):
+    # Validate Ticker
+    if not is_valid_ticker(ticker):
+        # Use OpenAI API to correct the ticker
+        ticker = get_corrected_ticker(ticker)
+
     news = extract_news_url(ticker, start_date, end_date)
     news_urls = [x[0] for x in news]
-    # news_titles = [x[1] for x in news]
-    news_text = '\n'.join([get_text_from_url(url) for url in news_urls]).replace(
-        "Have a tip? Submit confidentially to our News team. Found a factual error? Report here.", "")
-    user_msg_2 = f"analyze the effect of these news for {ticker}: {news_text[:1000]} "
-    response2 = client.chat.completions.create(
+    news_text = "\n".join([get_text_from_url(url) for url in news_urls]).replace(
+        "Have a tip? Submit confidentially to our News team. Found a factual error? Report here.",
+        "",
+    )
+    user_msg = f"analyze the effect of these news for {ticker}: {' '.join(news_text.split()[:1500])} "
+    response = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system",
-             "content": f"You are a professional financial anlayst, you generate insights that are both practical and analytical, potentially useful for investment or trading decisions. You dont include cliche warnings like 'It is recommended to conduct further research and analysis or consult with a financial advisor before making an investment decision'. You're succinct and are able to present all your anlaysis and news summarization in no more than 200 words. To do this, you prioritize important news, skip not-that-important news, and get rid of repetitive information.Use the following step-by-step instructions to respond to user inputs (which contains ticker, and news for you to analyze). {steps}"},
-            {"role": "user", "content": user_msg_2},
+            {
+                "role": "system",
+                "content": f"You are a professional financial analyst, you generate insights that are both practical "
+                           f"and analytical, potentially useful for investment or trading decisions. You dont include "
+                           f"cliche warnings like 'It is recommended to conduct further research and analysis or "
+                           f"consult with a financial advisor before making an investment decision'. You're succinct "
+                           f"and are able to present all your anlaysis and news summarization in no more than 200 "
+                           f"words. To do this, you prioritize important news, skip not-that-important news, "
+                           f"and get rid of repetitive information.Use the following step-by-step instructions to "
+                           f"respond to user inputs (which contains ticker, and news for you to analyze). {steps}",
+            },
+            {"role": "user", "content": user_msg},
         ],
-        max_tokens=300  # Estimated tokens for a 200-word response
+        max_tokens=300,  # Estimated tokens for a 200-word response
     )
 
-    return news, response2.choices[0].message.content
+    return news, response.choices[0].message.content
+
+
+def is_valid_ticker(ticker):
+    try:
+        info = yf.Ticker(ticker).info
+        return 'symbol' in info and info['symbol'] is not None
+    except Exception as e:
+        print(f"Error checking ticker: {e}")
+        return False
+
+
+def get_corrected_ticker(input_ticker):
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {
+                "role": "system",
+                "content": "You are an AI trained to understand and correct stock market tickers. You just return the correct ticker, nothing else."
+            },
+            {
+                "role": "user",
+                "content": f"Provide just the stock ticker symbol for the company commonly referred to as {input_ticker}."
+            }
+        ],
+    )
+
+    corrected_ticker = response.choices[0].message.content
+    return corrected_ticker
 
 
 if __name__ == "__main__":
