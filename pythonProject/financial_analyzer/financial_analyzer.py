@@ -59,7 +59,6 @@ company's prospects."""
 client = OpenAI()
 
 
-# Example usage
 def analyze_financial_news(ticker, start_date, end_date):
     # Validate Ticker
     if not is_valid_ticker(ticker):
@@ -110,11 +109,19 @@ def get_corrected_ticker(input_ticker):
         messages=[
             {
                 "role": "system",
-                "content": "You are an AI trained to understand and correct stock market tickers. You just return the correct ticker, nothing else."
+                "content": "You are an AI trained to figure out stock market ticker and return it."
             },
             {
                 "role": "user",
-                "content": f"Provide just the stock ticker symbol for the company commonly referred to as {input_ticker}."
+                "content": f"Return only the stock ticker symbol for the company commonly referred to as apple."
+            },
+            {
+                "role": "assistant",
+                "content": f"AAPL"
+            },
+            {
+                "role": "user",
+                "content": f"Return only the stock ticker symbol for the company commonly referred to as {input_ticker}."
             }
         ],
     )
