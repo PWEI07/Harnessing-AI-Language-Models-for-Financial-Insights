@@ -31,7 +31,7 @@ def form():
                 </form>
                 {% if result %}
                     <h3>News</h3>
-                    <div style="font-size:14px; margin-top:20px;">
+                    <div style="font-size:17px; margin-top:20px;">
                         {% for url, title in result %}
                             <div><a href="{{ url }}" target="_blank">{{ title }}</a></div>
                         {% endfor %}
@@ -39,7 +39,7 @@ def form():
                 {% endif %}
                 {% if analysis %}
                     <h3>Analysis</h3>
-                    <div style="font-size:14px; margin-top:20px; white-space: pre-wrap;">{{ analysis }}</div>
+                    <div style="font-size:17px; margin-top:20px; white-space: pre-wrap;">{{ analysis }}</div>
                 {% endif %}
             </body>
         </html>
