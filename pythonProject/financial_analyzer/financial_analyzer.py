@@ -60,38 +60,48 @@ client = OpenAI()
 
 
 def analyze_financial_news(ticker, start_date, end_date):
-    # Validate Ticker
-    if not is_valid_ticker(ticker):
-        # Use OpenAI API to correct the ticker
-        ticker = get_corrected_ticker(ticker)
+    try:
+        # Validate Ticker
+        if not is_valid_ticker(ticker):
+            # Use OpenAI API to correct the ticker
+            ticker = get_corrected_ticker(ticker)
 
-    news = extract_news_url(ticker, start_date, end_date)
-    news_urls = [x[0] for x in news]
-    news_text = "\n".join([get_text_from_url(url) for url in news_urls]).replace(
-        "Have a tip? Submit confidentially to our News team. Found a factual error? Report here.",
-        "",
-    )
-    user_msg = f"analyze the effect of these news for {ticker}: {' '.join(news_text.split()[:1500])} "
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {
-                "role": "system",
-                "content": f"You are a professional financial analyst, you generate insights that are both practical "
-                           f"and analytical, potentially useful for investment or trading decisions. You dont include "
-                           f"cliche warnings like 'It is recommended to conduct further research and analysis or "
-                           f"consult with a financial advisor before making an investment decision'. You're succinct "
-                           f"and are able to present all your anlaysis and news summarization in no more than 200 "
-                           f"words. To do this, you prioritize important news, skip not-that-important news, "
-                           f"and get rid of repetitive information.Use the following step-by-step instructions to "
-                           f"respond to user inputs (which contains ticker, and news for you to analyze). {steps}",
-            },
-            {"role": "user", "content": user_msg},
-        ],
-        max_tokens=300,  # Estimated tokens for a 200-word response
-    )
+        news = extract_news_url(ticker, start_date, end_date)
+        news_urls = [x[0] for x in news]
+        news_text = "\n".join([get_text_from_url(url) for url in news_urls]).replace(
+            "Have a tip? Submit confidentially to our News team. Found a factual error? Report here.",
+            "",
+        )
+        if news_text == '':
+            raise Exception("No news found")
+        user_msg = f"analyze the effect of these news for {ticker}: {' '.join(news_text.split()[:1500])} "
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {
+                    "role": "system",
+                    "content": f"You are a professional financial analyst, you generate insights that are both "
+                               f"practical "
+                               f"and analytical, potentially useful for investment or trading decisions. You dont "
+                               f"include "
+                               f"cliche warnings like 'It is recommended to conduct further research and analysis or "
+                               f"consult with a financial advisor before making an investment decision'. You're "
+                               f"succinct "
+                               f"and are able to present all your anlaysis and news summarization in no more than 200 "
+                               f"words. To do this, you prioritize important news, skip not-that-important news, "
+                               f"and get rid of repetitive information.Use the following step-by-step instructions to "
+                               f"respond to user inputs (which contains ticker, and news for you to analyze). {steps}",
+                },
+                {"role": "user", "content": user_msg},
+            ],
+            max_tokens=300,  # Estimated tokens for a 200-word response
+        )
 
-    return news, response.choices[0].message.content
+        return news, response.choices[0].message.content
+    except:
+        news = [(None, None)]
+        msg = ("Could not find any news to analyze based on the ticker and date range you provided. Please enter a more accurate ticker or description for the stock you are interested in or change the date range.")
+        return news, msg
 
 
 def is_valid_ticker(ticker):
@@ -121,7 +131,8 @@ def get_corrected_ticker(input_ticker):
             },
             {
                 "role": "user",
-                "content": f"Return only the stock ticker symbol for the company commonly referred to as {input_ticker}."
+                "content": f"Return only the stock ticker symbol for the company commonly referred"
+                           f" to as {input_ticker}."
             }
         ],
     )
